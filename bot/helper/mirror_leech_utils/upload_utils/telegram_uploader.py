@@ -24,6 +24,7 @@ from pyrogram.types import (
     InputMediaDocument,
     InputMediaPhoto,
     InputMediaVideo,
+    LinkPreviewOptions,
     ReplyParameters,
 )
 
@@ -118,7 +119,7 @@ class TelegramUploader:
                         self._listener.client.send_message,
                         chat_id=self._listener.message.chat.id,
                         text="Deleted Cmd Message! Don't delete the cmd message again!",
-                        disable_web_page_preview=True,
+                        link_preview_options=LinkPreviewOptions(is_disabled=True),
                         disable_notification=True,
                     )
                 except Exception:
@@ -391,8 +392,10 @@ class TelegramUploader:
                     chat_id=self._listener.user_id,
                     from_chat_id=self._sent_msg.chat.id,
                     message_id=self._sent_msg.id,
-                    reply_to_message_id=(
-                        self._listener.pm_msg.id if self._listener.pm_msg else None
+                    reply_parameters=(
+                        ReplyParameters(message_id=self._listener.pm_msg.id)
+                        if self._listener.pm_msg
+                        else None
                     ),
                 )
         except Exception as err:
@@ -465,8 +468,10 @@ class TelegramUploader:
                         chat_id=self._listener.user_id,
                         from_chat_id=copy_from_chat,
                         message_id=copy_from_msg,
-                        reply_to_message_id=(
-                            self._listener.pm_msg.id if self._listener.pm_msg else None
+                        reply_parameters=(
+                            ReplyParameters(message_id=self._listener.pm_msg.id)
+                            if self._listener.pm_msg
+                            else None
                         ),
                     )
                     if (
@@ -682,7 +687,7 @@ class TelegramUploader:
                 file_path=o_path,
                 cap_mono=cap_mono,
                 reply_target=self._sent_msg,
-                reply_to_message_id=self._sent_msg.id,
+                reply_msg_id=self._sent_msg.id,
                 force_document=force_document,
                 user_session=user_session,
                 user_thumb=self._thumb,

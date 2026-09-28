@@ -63,6 +63,7 @@ class BotCommands:
         "RmBlackList": ["rmblacklist", "rbl"],
         "BotSet": ["bsetting", "bs"],
         "UserSet": ["usetting", "us"],
+        "LockSession": ["lockmysession", "lms"],
         "Select": ["select", "sel"],
         "CategorySelect": ["category", "ctsel"],
         "GDClean": ["gdclean", "gdc"],

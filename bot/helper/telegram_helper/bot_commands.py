@@ -23,6 +23,7 @@ class BotCommands:
         "Clone": ["clone", "cl"],
         "Count": "count",
         "Delete": "del",
+        "GDClean": ["gdclean", "gdc"],
         "List": "list",
         "RcRefreshIndex": "rcrefreshindex",
         "Recent": "recent",

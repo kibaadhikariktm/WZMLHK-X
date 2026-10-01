@@ -498,8 +498,10 @@ def gdflix(url):
     with CurlSession(impersonate="chrome") as session:
         res = session.get(url)
         tree = HTML(res.text)
+        parsed = urlparse(res.url)
+        host = f"{parsed.scheme}://{parsed.netloc}"
+
         if "/pack/" in url:
-            host = f"https://{urlparse(res.url).netloc}"
             details = {
                 "contents": [],
                 "title": (tree.xpath("//title/text()") or [""])[0]
@@ -520,16 +522,35 @@ def gdflix(url):
             if not details["contents"]:
                 raise DirectDownloadLinkException("ERROR: No files found in pack")
             return details
-        if instant := tree.xpath("//a[contains(@href, 'instant')]/@href"):
-            res = session.get(instant[0], allow_redirects=False)
-            if loc := res.headers.get("location", "").strip():
-                if durl := parse_qs(urlparse(loc).query).get("url"):
-                    return durl[0]
-                return loc
 
-        parsed = urlparse(res.url)
+        if instant := tree.xpath("//a[contains(@href, 'instant')]/@href"):
+            try:
+                inst_res = session.get(
+                    instant[0], allow_redirects=False, headers={"Referer": res.url}
+                )
+                if loc := inst_res.headers.get("location", "").strip():
+                    if durl := parse_qs(urlparse(loc).query).get("url"):
+                        return durl[0]
+                    return loc
+            except Exception:
+                pass
+
+        if cloud := tree.xpath("//a[contains(@href, '/cloud/')]/@href"):
+            try:
+                cloud_url = (
+                    f"{host}{cloud[0]}" if cloud[0].startswith("/") else cloud[0]
+                )
+                c_res = session.get(cloud_url)
+                c_tree = HTML(c_res.text)
+                if c_dl := c_tree.xpath(
+                    "//a[contains(@href, 'workers.dev') or contains(@href, 'cloud-dl') or contains(text(), 'Resume')]/@href"
+                ):
+                    return c_dl[0]
+            except Exception:
+                pass
+
         mfile_path = parsed.path.replace("/file/", "/mfile/")
-        mfile_url = f"{parsed.scheme}://{parsed.netloc}{mfile_path}"
+        mfile_url = f"{host}{mfile_path}"
 
         cf_token = ""
         if m_token := search(r'var cf_token\s*=\s*["\']([^"\']+)["\']', res.text):
@@ -544,7 +565,7 @@ def gdflix(url):
         headers = {
             "x-token": parsed.netloc,
             "Referer": res.url,
-            "Origin": f"{parsed.scheme}://{parsed.netloc}",
+            "Origin": host,
         }
 
         data = {

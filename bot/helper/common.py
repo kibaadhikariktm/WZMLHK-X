@@ -406,8 +406,12 @@ class TaskConfig:
                 ) != self.get_config_path(self.up_dest):
                     raise ValueError("You must use the same config to clone!")
         else:
-            self.leech_dest = self.up_dest or self.user_dict.get("LEECH_DUMP_CHAT")
-            self.up_dest = Config.LEECH_DUMP_CHAT
+            if self.up_dest:
+                # Explicit -up: upload straight to it (no copy to the global dump chat)
+                self.leech_dest = ""
+            else:
+                self.leech_dest = self.user_dict.get("LEECH_DUMP_CHAT")
+                self.up_dest = Config.LEECH_DUMP_CHAT            
             self.hybrid_leech = TgClient.IS_PREMIUM_USER and (
                 self.user_dict.get("HYBRID_LEECH")
                 or Config.HYBRID_LEECH

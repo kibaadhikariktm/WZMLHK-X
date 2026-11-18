@@ -130,156 +130,19 @@ def _cgroup_paths():
 
 def _diagnose(paths):
     global _debug_logged
-
-    # Run diagnostics only once to avoid flooding Heroku logs
     if _debug_logged:
         return
-
     _debug_logged = True
-
-    logger.warning(
-        "[RAM WATCHDOG] No readable cgroup memory metric; "
-        "restart protection inactive"
-    )
-
-    # 1. Show candidate memory paths
-    logger.warning(
-        "[RAM DEBUG] Candidate files: %s",
-        [str(path) for path in paths]
-    )
-
-    # 2. Check candidate files
-    for path in paths:
+    logger.warning("[RAM WATCHDOG] No readable cgroup memory metric; restart protection inactive")
+    logger.warning("[RAM DEBUG] Candidate files: %s", [str(path) for path in paths])
+    for name in ("/proc/self/cgroup", "/proc/self/mountinfo"):
         try:
-            p = Path(path)
-
-            logger.warning(
-                "[RAM DEBUG] File: %s | exists=%s | readable=%s",
-                path,
-                p.exists(),
-                os.access(path, os.R_OK),
-            )
-
-            if p.exists():
-                try:
-                    content = p.read_text(
-                        encoding="utf-8"
-                    ).strip()
-
-                    logger.warning(
-                        "[RAM DEBUG] File content: %s",
-                        content[:500]
-                    )
-
-                except Exception as exc:
-                    logger.warning(
-                        "[RAM DEBUG] Cannot read %s: %s",
-                        path,
-                        exc
-                    )
-
-        except Exception as exc:
-            logger.warning(
-                "[RAM DEBUG] File inspection failed: %s",
-                exc
-            )
-
-    # 3. Check cgroup membership
-    try:
-        content = Path(
-            "/proc/self/cgroup"
-        ).read_text(encoding="utf-8")
-
-        logger.warning(
-            "[RAM DEBUG] /proc/self/cgroup:\n%s",
-            content[:3000]
-        )
-
-    except Exception as exc:
-        logger.warning(
-            "[RAM DEBUG] Cannot read cgroup membership: %s",
-            exc
-        )
-
-    # 4. Inspect all mount information
-    try:
-        lines = Path(
-            "/proc/self/mountinfo"
-        ).read_text(
-            encoding="utf-8"
-        ).splitlines()
-
-        logger.warning(
-            "[RAM DEBUG] mountinfo total entries: %d",
-            len(lines)
-        )
-
-        # Look specifically for cgroup mounts
-        cgroup_lines = [
-            line for line in lines
-            if "cgroup" in line.lower()
-        ]
-
-        logger.warning(
-            "[RAM DEBUG] cgroup mount entries: %d",
-            len(cgroup_lines)
-        )
-
-        for line in cgroup_lines[:10]:
-            logger.warning(
-                "[RAM DEBUG] CGROUP MOUNT: %s",
-                line[:1000]
-            )
-
-        # Show first few entries if no cgroup mounts found
-        if not cgroup_lines:
-            logger.warning(
-                "[RAM DEBUG] No cgroup mounts detected"
-            )
-
-            for line in lines[:5]:
-                logger.warning(
-                    "[RAM DEBUG] MOUNT ENTRY: %s",
-                    line[:1000]
-                )
-
-    except Exception as exc:
-        logger.warning(
-            "[RAM DEBUG] Cannot inspect mountinfo: %s",
-            exc
-        )
-
-    # 5. Check standard Linux cgroup paths
-    standard_paths = [
-        "/sys/fs/cgroup",
-        "/sys/fs/cgroup/memory.current",
-        "/sys/fs/cgroup/memory.stat",
-        "/sys/fs/cgroup/memory",
-        "/sys/fs/cgroup/memory/memory.usage_in_bytes",
-    ]
-
-    for path in standard_paths:
-        try:
-            p = Path(path)
-
-            logger.warning(
-                "[RAM DEBUG] Standard path: %s | "
-                "exists=%s | readable=%s",
-                path,
-                p.exists(),
-                os.access(path, os.R_OK),
-            )
-
-        except Exception as exc:
-            logger.warning(
-                "[RAM DEBUG] Standard path error: %s",
-                exc
-            )
-
-    logger.warning(
-        "[RAM DEBUG] Diagnostics completed"
-    )
-
+            lines = Path(name).read_text(encoding="utf-8").splitlines()
+            if name.endswith("mountinfo"):
+                lines = [line for line in lines if " - cgroup" in line]
+            logger.warning("[RAM DEBUG] %s: %s", name, "\n".join(lines)[:5000])
+        except OSError as exc:
+            logger.warning("[RAM DEBUG] %s cannot be read: %s", name, exc)
 
 
 def memory_mb():

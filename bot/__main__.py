@@ -12,8 +12,8 @@ from pytz import timezone
 
 from . import LOGGER, bot_loop
 from .core.tg_client import TgClient
-
-
+from .helper.ext_utils.ram_watchdog import start_ram_watchdog
+start_ram_watchdog()
 async def main():
     from asyncio import gather
 

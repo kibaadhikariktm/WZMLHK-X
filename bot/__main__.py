@@ -5,7 +5,6 @@ import faulthandler
 from sys import stderr
 from logging import FileHandler, getLogger
 
-
 faulthandler.enable(file=stderr, all_threads=True)
 
 from .core.config_manager import Config
@@ -28,7 +27,6 @@ for _h in getLogger().handlers:
             pass
         break
 from .core.tg_client import TgClient
-from .helper.ext_utils.ram_watchdog import start_ram_watchdog
 from .helper.ext_utils.crash_reporter import (
     send_unhandled_exception,
     send_async_exception,
@@ -38,7 +36,7 @@ sys.excepthook = send_unhandled_exception
 
 _clean_task = None
 
-start_ram_watchdog()
+
 async def main():
     from asyncio import gather
 

@@ -311,6 +311,12 @@ class TelegramUploader:
                 from html import escape
 
                 return escape(str(value or ""))
+                md5_value = ""
+
+                if "{md5_hash}" in parts[0]:
+                    md5_value = await sync_to_async(
+                        get_md5_hash, up_path
+                    )
 
             cap_mono = parts[0].format(
                 filename=_html_safe(display_filename),
@@ -321,7 +327,7 @@ class TelegramUploader:
                 quality=_html_safe(qual),
                 languages=_html_safe(lang),
                 subtitles=_html_safe(subs),
-                md5_hash=_html_safe(await sync_to_async(get_md5_hash, up_path)),
+                md5_hash=_html_safe(md5_value),
                 mime_type=_html_safe(
                     self._listener.file_details.get("mime_type", "text/plain")
                 ),

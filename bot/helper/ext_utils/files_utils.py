@@ -299,6 +299,7 @@ async def split_file(f_path, split_size, listener):
         except Exception:
             stderr = "Unable to decode the error!"
         LOGGER.error(f"{stderr}. Split Document: {f_path}")
+        return False
     return True
 
 

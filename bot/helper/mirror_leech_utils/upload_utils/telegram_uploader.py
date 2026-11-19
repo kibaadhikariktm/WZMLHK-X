@@ -307,16 +307,17 @@ class TelegramUploader:
                 except Exception:
                     smart_meta = {}
 
-            def _html_safe(value):
+             def _html_safe(value):
                 from html import escape
 
                 return escape(str(value or ""))
-                md5_value = ""
 
-                if "{md5_hash}" in parts[0]:
-                    md5_value = await sync_to_async(
-                        get_md5_hash, up_path
-                    )
+            md5_value = ""
+
+            if "{md5_hash}" in parts[0]:
+                md5_value = await sync_to_async(
+                    get_md5_hash, up_path
+                )
 
             cap_mono = parts[0].format(
                 filename=_html_safe(display_filename),

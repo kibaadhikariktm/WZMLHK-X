@@ -232,10 +232,10 @@ class TaskConfig:
         )
         if self.name_swap:
             self.name_swap = [x.split(":") for x in self.name_swap.split("|")]
-        self.excluded_extensions = self.user_dict.get("EXCLUDED_EXTENSIONS") or (
-            excluded_extensions
-            if "EXCLUDED_EXTENSIONS" not in self.user_dict
-            else ["aria2", "!qB"]
+        user_excluded = self.user_dict.get("EXCLUDED_EXTENSIONS") or []
+
+        self.excluded_extensions = list(
+            dict.fromkeys(excluded_extensions + user_excluded)
         )
         self.blacklisted_keywords = self.user_dict.get("BLACKLISTED_KEYWORDS") or (
             blacklisted_keywords if "BLACKLISTED_KEYWORDS" not in self.user_dict else []

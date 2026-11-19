@@ -307,7 +307,7 @@ class TelegramUploader:
                 except Exception:
                     smart_meta = {}
 
-             def _html_safe(value):
+            def _html_safe(value):
                 from html import escape
 
                 return escape(str(value or ""))

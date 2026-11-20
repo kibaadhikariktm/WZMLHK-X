@@ -560,19 +560,23 @@ class TaskListener(TaskConfig):
                 fmsg = ""
                 for index, (link, name) in enumerate(files.items(), start=1):
                     chat_id, msg_id = link.split("/")[-2:]
-                    fmsg += f"{index}. <a href='{link}'>{escape(str(name))}</a>"
+                    entry = f"{index}. <a href='{link}'>{escape(str(name))}</a>"
                     if Config.MEDIA_STORE and (
                         self.is_super_chat or Config.LEECH_DUMP_CHAT
                     ):
                         if chat_id.isdigit():
                             chat_id = f"-100{chat_id}"
                         flink = f"https://t.me/{TgClient.BNAME}?start={encode_slink('file' + chat_id + '&&' + msg_id)}"
-                        fmsg += f"\n┖ <b>Get Media</b> → <a href='{flink}'>Store Link</a> | <a href='https://t.me/share/url?url={flink}'>Share Link</a>"
-                    fmsg += "\n"
-                    if len(fmsg.encode() + msg.encode()) > 4000:
+                        entry += f"\n┖ <b>Get Media</b> → <a href='{flink}'>Store Link</a> | <a href='https://t.me/share/url?url={flink}'>Share Link</a>"
+
+                    entry += "\n"
+
+                    if fmsg and len((msg + fmsg + entry).encode()) > 4000:
                         await send_message(log_chat, msg + fmsg)
                         await sleep(1)
                         fmsg = ""
+
+                    fmsg += entry
                 if fmsg != "":
                     await send_message(log_chat, msg + fmsg)
         else:

@@ -12,4 +12,4 @@ $ARIA2C --allow-overwrite=true --auto-file-renaming=true --bt-enable-lpd=true --
        --http-accept-gzip=true --max-file-not-found=0 --max-tries=20  --peer-id-prefix=-qB4520- --reuse-uri=true \
        --content-disposition-default-utf8=true --user-agent=Wget/1.12 --peer-agent=qBittorrent/4.5.2 --quiet=true \
        --summary-interval=0 --max-upload-limit=1K
-cpulimit -l 20 -- $SABNZBDPLUS -f sabnzbd/SABnzbd.ini -s :::8070 -b 0 -d -c -l 0 --console
+#cpulimit -l 20 -- $SABNZBDPLUS -f sabnzbd/SABnzbd.ini -s :::8070 -b 0 -d -c -l 0 --console

@@ -102,8 +102,13 @@ async def send_message(message, text, buttons=None, block=True, photo=None, **kw
     except ReplyMarkupInvalid as rmi:
         LOGGER.warning(str(rmi))
         return await send_message(message, text, None)
-    except (MessageEmpty, EntityBoundsInvalid):
-        return await send_message(message, text, parse_mode=ParseMode.DISABLED)
+    except MessageEmpty:
+        LOGGER.warning("Skipped sending an empty Telegram message")
+        return None
+    except EntityBoundsInvalid:
+        return await send_message(
+            message, text, parse_mode=ParseMode.DISABLED
+        )
     except PeerIdInvalid:
         if isinstance(message, int):
             await TgClient.bot.resolve_peer(message)
@@ -253,8 +258,12 @@ async def get_tg_link_message(link):
             r"tg:\/\/(openmessage)\?user_id=([0-9]+)&message_id=([0-9-]+)", link
         )
         if not TgClient.user:
-            raise TgLinkException("USER_SESSION_STRING required for this private link!")
+            raise TgLinkException("USER_SESSION_STRING required for this private link!")            
 
+    if msg is None:
+        raise TgLinkException(
+            "Invalid Telegram message link! Please provide a valid message URL."
+        )
     chat = msg[2]
     msg_id = msg[3]
     if "-" in msg_id:
@@ -372,7 +381,7 @@ async def send_status_message(msg, user_id=0):
                 return
             old_message = status_dict[sid]["message"]
             message = await send_message(msg, text, buttons, block=False)
-            if isinstance(message, str):
+            if not isinstance(message, Message):
                 LOGGER.error(
                     f"Status with id: {sid} haven't been sent. Error: {message}"
                 )
@@ -385,7 +394,7 @@ async def send_status_message(msg, user_id=0):
             if text is None:
                 return
             message = await send_message(msg, text, buttons, block=False)
-            if isinstance(message, str):
+            if not isinstance(message, Message):
                 LOGGER.error(
                     f"Status with id: {sid} haven't been sent. Error: {message}"
                 )

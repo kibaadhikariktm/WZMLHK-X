@@ -31,6 +31,7 @@ async def authorize(_, message):
                 user_data[chat_id]["thread_ids"].append(thread_id)
             else:
                 user_data[chat_id]["thread_ids"] = [thread_id]
+            await database.update_user_data(chat_id)
             msg = "Authorized"
     else:
         update_user_ldata(chat_id, "AUTH", True)
@@ -57,16 +58,31 @@ async def unauthorize(_, message):
             thread_id = message.message_thread_id
         chat_id = message.chat.id
     if chat_id in user_data and user_data[chat_id].get("AUTH"):
-        if thread_id is not None and thread_id in user_data[chat_id].get(
-            "thread_ids", []
-        ):
-            user_data[chat_id]["thread_ids"].remove(thread_id)
+        topic_ids = user_data[chat_id].get("thread_ids")
+
+        if thread_id is not None:
+            if topic_ids is not None and thread_id in topic_ids:
+                topic_ids.remove(thread_id)
+
+                if not topic_ids:
+                    update_user_ldata(chat_id, "AUTH", False)
+
+                await database.update_user_data(chat_id)
+                msg = "Topic Unauthorized!"
+            else:
+                msg = "Already Unauthorized!"
+        elif topic_ids is not None:
+            msg = (
+                "This chat uses topic-specific authorization. "
+                "Specify a topic ID to unauthorize it."
+            )
         else:
             update_user_ldata(chat_id, "AUTH", False)
-        await database.update_user_data(chat_id)
-        msg = "Unauthorized"
+            await database.update_user_data(chat_id)
+            msg = "Chat Unauthorized!"
     else:
         msg = "Already Unauthorized!"
+
     await send_message(message, msg)
 
 

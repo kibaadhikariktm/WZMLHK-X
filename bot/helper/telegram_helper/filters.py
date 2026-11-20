@@ -30,18 +30,18 @@ class CustomFilters:
                 chat_id in user_data
                 and user_data[chat_id].get("AUTH", False)
                 and (
-                    thread_id is None
-                    or thread_id in user_data[chat_id].get("thread_ids", [])
+                    "thread_ids" not in user_data[chat_id]
+                    or thread_id in user_data[chat_id]["thread_ids"]
                 )
             )
             or uid in sudo_users
             or uid in auth_chats
-            or chat_id in auth_chats
-            and (
-                auth_chats[chat_id]
-                and thread_id
-                and thread_id in auth_chats[chat_id]
-                or not auth_chats[chat_id]
+            or (
+                chat_id in auth_chats
+                and (
+                    not auth_chats[chat_id]
+                    or thread_id in auth_chats[chat_id]
+                )
             )
         )
 

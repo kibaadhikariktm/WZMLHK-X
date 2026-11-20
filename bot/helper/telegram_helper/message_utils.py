@@ -207,13 +207,24 @@ async def send_rss(text, chat_id, thread_id):
 
 
 async def delete_message(*args):
-    tasks = [msg.delete() for msg in args if isinstance(msg, Message)]
-    if not tasks:
+    messages = [msg for msg in args if isinstance(msg, Message)]
+    if not messages:
         return
-    results = await gather(*tasks, return_exceptions=True)
-    for result in results:
+
+    results = await gather(
+        *(msg.delete() for msg in messages),
+        return_exceptions=True,
+    )
+
+    for msg, result in zip(messages, results):
         if isinstance(result, Exception):
-            LOGGER.error(result)
+            LOGGER.error(
+                f"Delete failed | "
+                f"Chat: {msg.chat.id if msg.chat else 'Unknown'} | "
+                f"Message ID: {msg.id} | "
+                f"Service: {bool(msg.service)} | "
+                f"Error: {result}"
+            )
 
 
 async def delete_links(message):

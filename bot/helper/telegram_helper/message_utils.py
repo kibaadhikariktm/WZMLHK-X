@@ -81,6 +81,7 @@ async def send_message(message, text, buttons=None, block=True, photo=None, **kw
                 disable_web_page_preview=True,
                 disable_notification=True,
                 reply_markup=buttons,
+                **kwargs,
             )
         return await message.reply(
             text=text,

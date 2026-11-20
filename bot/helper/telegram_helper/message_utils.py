@@ -57,7 +57,9 @@ async def send_message(message, text, buttons=None, block=True, photo=None, **kw
                 if not block:
                     return str(f)
                 await sleep(f.value * 1.2)
-                return await send_message(message, text, buttons, block, photo)
+                return await send_message(
+                    message, text, buttons, block, photo, **kwargs
+                )
             except MediaCaptionTooLong:
                 return await send_message(
                     message,
@@ -93,7 +95,9 @@ async def send_message(message, text, buttons=None, block=True, photo=None, **kw
         if not block:
             return str(f)
         await sleep(f.value * 1.2)
-        return await send_message(message, text, buttons)
+        return await send_message(
+            message, text, buttons, block, photo, **kwargs
+        )
     except ReplyMarkupInvalid as rmi:
         LOGGER.warning(str(rmi))
         return await send_message(message, text, None)

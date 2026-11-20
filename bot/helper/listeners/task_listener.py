@@ -793,7 +793,12 @@ class TaskListener(TaskConfig):
             )
         )
         task_info = f"<b><i>{escape(str(task_ref))}</i></b>\n│\n" if task_ref else ""
-        await send_message(self.message, f"{task_info}{self.tag} {escape(str(error))}")
+        await send_message(
+            self.message,
+            f"{task_info}<b>❌ Upload Failed!</b>\n\n"
+            f"┎ <b>Reason</b> → {escape(str(error))}\n"
+            f"┖ <b>Task By</b> → {self.tag}",
+        )
         if count == 0:
             await self.clean()
         else:

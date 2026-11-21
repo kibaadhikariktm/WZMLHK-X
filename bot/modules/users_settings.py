@@ -163,7 +163,7 @@ user_settings_text = {
     "EXCLUDED_EXTENSIONS": (
         "",
         "",
-        "Send additional excluded extensions separated by spaces.\n\nExample: pdf nfo txt\n\nNote: Global exclusions are mandatory and cannot be overridden.</i>\n┖ <b>Time Left :</b> <code>60 sec</code>",
+        "Send additional excluded extensions separated by spaces or commas.\n\nExamples:\npdf nfo txt\n.pdf, .nfo, .txt\n\nNote: Global exclusions are mandatory and cannot be overridden.</i>\n┖ <b>Time Left :</b> <code>60 sec</code>",
     ),
     "BLACKLISTED_KEYWORDS": (
         "",
@@ -1149,7 +1149,7 @@ async def get_user_settings(from_user, stype="main"):
             bl_kw = ", ".join(bl_kw)
 
         ns_msg = (
-            f"<code>{swap}</code>"
+            f"<code>{escape(str(swap))}</code>"
             if (swap := user_dict.get("NAME_SWAP", False))
             else "<b>Not Exists</b>"
         )
@@ -1163,11 +1163,9 @@ async def get_user_settings(from_user, stype="main"):
         else:
             ytopt = "None"
 
-        upload_paths = user_dict.get("UPLOAD_PATHS", {})
-        if not upload_paths and "UPLOAD_PATHS" not in user_dict and Config.UPLOAD_PATHS:
-            upload_paths = Config.UPLOAD_PATHS
-        else:
-            upload_paths = "None"
+        upload_paths = user_dict.get(
+            "UPLOAD_PATHS", Config.UPLOAD_PATHS
+        ) or "None"
         buttons.data_button("Upload Paths", f"userset {user_id} menu UPLOAD_PATHS")
 
         yt_cookie_path = f"cookies/{user_id}/cookies.txt"
@@ -1188,11 +1186,11 @@ async def get_user_settings(from_user, stype="main"):
 ┟ <b>Name</b> → {user_name}
 ┃
 ┠ <b>Name Swaps</b> → {ns_msg}
-┠ <b>Global Exclusions</b> → <code>{global_ex}</code>
-┠ <b>Your Exclusions</b> → <code>{user_ex}</code>
-┠ <b>Blacklisted Keywords</b> → <code>{bl_kw}</code>
-┠ <b>Upload Paths</b> → <b>{upload_paths}</b>
-┠ <b>YT-DLP Options</b> → <code>{ytopt}</code>
+┠ <b>Global Exclusions</b> → <code>{escape(str(global_ex))}</code>
+┠ <b>Your Exclusions</b> → <code>{escape(str(user_ex))}</code>
+┠ <b>Blacklisted Keywords</b> → <code>{escape(str(bl_kw))}</code>
+┠ <b>Upload Paths</b> → <code>{escape(str(upload_paths))}</code>
+┠ <b>YT-DLP Options</b> → <code>{escape(str(ytopt))}</code>
 ┖ <b>YT User Cookie File</b> → <b>{user_cookie_msg}</b>"""
     elif stype == "yttools":
         buttons.data_button("YT Description", f"userset {user_id} menu YT_DESP")
@@ -1358,11 +1356,12 @@ async def set_option(_, message, option, rfunc):
             return
     # elif option == "LEECH_DUMP_CHAT": # TODO: Add
     elif option == "EXCLUDED_EXTENSIONS":
-        fx = value.split()
+        fx = value.replace(",", " ").split()
         value = ["aria2", "!qB"]
         for x in fx:
-            x = x.lstrip(".")
-            value.append(x.strip().lower())
+            x = x.strip().lstrip(".").lower()
+            if x and x not in value:
+                value.append(x)
     elif option == "BLACKLISTED_KEYWORDS":
         kw_list = value.split()
         value = []

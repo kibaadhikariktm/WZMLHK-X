@@ -591,20 +591,24 @@ class TaskListener(TaskConfig):
                 msg += "〶 <b><u>Files List :</u></b>\n"
                 fmsg = ""
                 for index, (link, name) in enumerate(files.items(), start=1):
-                    chat_id, msg_id = link.split("/")[-2:]
-                    entry = f"{index}. <a href='{link}'>{escape(str(name))}</a>"
+                    clean_link = str(link).split("?", 1)[0].split("#", 1)[0]
+                    parts = clean_link.rstrip("/").split("/")
+                    chat_id = parts[-2] if len(parts) >= 2 else ""
+                    msg_id = parts[-1] if parts else ""
+                    if has_custom and "/c/" in clean_link:
+                        # Private supergroup links can include a topic segment.
+                        chat_id = clean_link.split("/c/", 1)[1].split("/", 1)[0]
+                    entry = f"{index}. <a href='{escape(str(link), quote=True)}'>{escape(str(name))}</a>"
                     if Config.MEDIA_STORE and (
                         self.is_super_chat or Config.LEECH_DUMP_CHAT
                     ):
-                        if has_custom:
-                            # Topic links can contain an extra path component.
-                            parts = link.rstrip("/").split("/")
-                            chat_id = parts[4] if len(parts) > 4 and parts[3] == "c" else parts[3]
-                            msg_id = parts[-1]
                         if chat_id.isdigit():
                             chat_id = f"-100{chat_id}"
-                        flink = f"https://t.me/{TgClient.BNAME}?start={encode_slink('file' + chat_id + '&&' + msg_id)}"
-                        entry += f"\n┖ <b>Get Media</b> → <a href='{flink}'>Store Link</a> | <a href='https://t.me/share/url?url={flink}'>Share Link</a>"
+                        # The existing Media Store token expects a resolvable
+                        # numeric chat ID and numeric Telegram message ID.
+                        if chat_id.lstrip("-").isdigit() and msg_id.isdigit():
+                            flink = f"https://t.me/{TgClient.BNAME}?start={encode_slink('file' + chat_id + '&&' + msg_id)}"
+                            entry += f"\n┖ <b>Get Media</b> → <a href='{flink}'>Store Link</a> | <a href='https://t.me/share/url?url={flink}'>Share Link</a>"
 
                     entry += "\n"
 

@@ -254,10 +254,12 @@ async def get_readable_message(sid, is_user, page_no=1, status="All", page_step=
                 count = ""
             msg += f"\n┠ <b>Processed</b> → <i>{task.processed_bytes()}{subsize} of {task.size()}</i>"
             if count:
-                msg += f"\n┠ <b>Count:</b> → <b>{count}</b>"
+                msg += f"\n┠ <b>File Progress</b> → <b>{count}</b>
             msg += f"\n┠ <b>Status</b> → <b>{tstatus}</b>"
             msg += f"\n┠ <b>Speed</b> → <i>{task.speed()}</i>"
-            msg += f"\n┠ <b>Time</b> → <i>{task.eta()} of {get_readable_time(elapsed + get_raw_time(task.eta()))} ( {get_readable_time(elapsed)} )</i>"
+            eta = task.eta()
+            msg += f"\n┠ <b>ETA</b> → <i>{eta}</i> | <b>Elapsed</b> → <i>{get_readable_time(elapsed)}</i>"
+            msg += f"\n┠ <b>Est. Total</b> → <i>{get_readable_time(elapsed + get_raw_time(eta))}</i>"
             if tstatus == MirrorStatus.STATUS_DOWNLOAD and (
                 task.listener.is_torrent or task.listener.is_qbit
             ):
@@ -274,6 +276,8 @@ async def get_readable_message(sid, is_user, page_no=1, status="All", page_step=
             msg += f"\n┠ <b>Time</b> → <i>{task.seeding_time()}</i> | <b>Elapsed</b> → <i>{get_readable_time(elapsed)}</i>"
         else:
             msg += f"\n┠ <b>Size</b> → <i>{task.size()}</i>"
+            msg += f"\n┠ <b>Status</b> → <b>{tstatus}</b>"
+            msg += f"\n┠ <b>Elapsed</b> → <i>{get_readable_time(elapsed)}</i>"
         msg += f"\n┠ <b>Engine</b> → <i>{task.engine}</i>"
         msg += f"\n┠ <b>In / Out Mode</b> → <i>{task.listener.mode[0]}</i> | <i>{task.listener.mode[1]}</i>"
         # TODO: Add Bt Sel

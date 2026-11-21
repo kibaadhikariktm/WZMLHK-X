@@ -5,6 +5,7 @@ from mimetypes import guess_type
 from contextlib import suppress
 from os import path as ospath, walk
 from pyrogram.enums import ButtonStyle
+from pyrogram.errors import FloodWait
 
 from aiofiles.os import listdir, remove, path as aiopath
 from requests import utils as rutils
@@ -102,7 +103,11 @@ class TaskListener(TaskConfig):
     async def on_download_start(self):
         self.download_start_time = time()
         mode_name = "Leech" if self.is_leech else "Mirror"
-        if self.bot_pm and self.is_super_chat:
+        if (
+            self.bot_pm
+            and self.is_super_chat
+            and not (self.is_leech and getattr(self, "leech_dest", None))
+        ):
             self.pm_msg = await send_message(
                 self.user_id,
                 f"""➲ <b><u>Task Started :</u></b>
@@ -532,30 +537,57 @@ class TaskListener(TaskConfig):
             await send_message(self.message, user_message, button)
 
         elif self.is_leech:
-            msg += f"\n┠ <b>Total Files</b> → {folders}
+            msg += f"\n┠ <b>Total Files</b> → {folders}"
             if mime_type != 0:
                 msg += f"\n┠ <b>Corrupted Files</b> → {mime_type}"
             msg += f"\n┖ <b>Task By</b> → {self.tag}\n\n"
 
-            if self.bot_pm or self.private_output:
-                pmsg = msg
-                # pmsg += "〶 <b><u>Action Performed :</u></b>\n"
-                # pmsg += "⋗ <i>File(s) have been sent to User PM</i>\n\n"
+            custom_chat = getattr(self, "custom_chat_id", None)
+            custom_thread = getattr(self, "custom_thread_id", None)
+            has_custom = custom_chat is not None
+            if has_custom:
+                files = getattr(self, "custom_msgs_dict", {}) or {}
+
+            if not has_custom and (self.bot_pm or self.private_output):
                 if self.is_super_chat:
                     pm_button = ButtonMaker()
                     pm_button.url_button(
                         "📥 View in Bot PM", f"https://t.me/{TgClient.BNAME}"
                     )
-                    await send_message(self.message, pmsg, pm_button.build_menu(1))
+                    await send_message(self.message, msg, pm_button.build_menu(1))
 
-            if not files and not self.is_super_chat:
-                await send_message(self.message, msg)
+            log_chat = (
+                self.user_id
+                if (self.bot_pm or self.private_output)
+                else self.message
+            )
+
+            async def send_summary(text):
+                if not has_custom:
+                    return await send_message(log_chat, text)
+                # Use the same topic-aware send method as TelegramUploader.
+                while True:
+                    try:
+                        return await TgClient.bot.send_message(
+                            chat_id=custom_chat,
+                            text=text,
+                            message_thread_id=custom_thread,
+                            disable_web_page_preview=True,
+                            disable_notification=True,
+                        )
+                    except FloodWait as f:
+                        LOGGER.warning(str(f))
+                        await sleep(f.value * 1.2)
+                    except Exception as e:
+                        LOGGER.error(f"Failed to send custom completion summary: {e}")
+                        return None
+
+            if not files:
+                if has_custom:
+                    await send_summary(msg)
+                elif not self.is_super_chat:
+                    await send_message(self.message, msg)
             else:
-                log_chat = (
-                    self.user_id
-                    if (self.bot_pm or self.private_output)
-                    else self.message
-                )
                 msg += "〶 <b><u>Files List :</u></b>\n"
                 fmsg = ""
                 for index, (link, name) in enumerate(files.items(), start=1):
@@ -564,6 +596,11 @@ class TaskListener(TaskConfig):
                     if Config.MEDIA_STORE and (
                         self.is_super_chat or Config.LEECH_DUMP_CHAT
                     ):
+                        if has_custom:
+                            # Topic links can contain an extra path component.
+                            parts = link.rstrip("/").split("/")
+                            chat_id = parts[4] if len(parts) > 4 and parts[3] == "c" else parts[3]
+                            msg_id = parts[-1]
                         if chat_id.isdigit():
                             chat_id = f"-100{chat_id}"
                         flink = f"https://t.me/{TgClient.BNAME}?start={encode_slink('file' + chat_id + '&&' + msg_id)}"
@@ -572,13 +609,13 @@ class TaskListener(TaskConfig):
                     entry += "\n"
 
                     if fmsg and len((msg + fmsg + entry).encode()) > 4000:
-                        await send_message(log_chat, msg + fmsg)
+                        await send_summary(msg + fmsg)
                         await sleep(1)
                         fmsg = ""
 
                     fmsg += entry
                 if fmsg != "":
-                    await send_message(log_chat, msg + fmsg)
+                    await send_summary(msg + fmsg)
         else:
             msg += f"\n│\n┟ <b>Type</b> → {mime_type}"
             if mime_type == "Folder":

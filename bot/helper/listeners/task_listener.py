@@ -773,21 +773,39 @@ class TaskListener(TaskConfig):
         )
         name_info = f"<b><i>{escape(str(task_ref))}</i></b>\n│\n" if task_ref else ""
 
-        msg = (
-            f"""〶 <b><i><u>Limit Breached:</u></i></b>
+        cancellation = getattr(self, "cancellation_info", None)
+        if cancellation and not is_limit:
+            msg = (
+                f"{name_info}<b>🛑 Download Cancelled!</b>\n\n"
+                f"┎ <b>Cancelled by</b> → {escape(str(cancellation.get('actor', 'Unknown')))}\n"
+                f"┠ <b>Method</b> → {escape(str(cancellation.get('method', 'Not recorded')))}\n"
+                f"┠ <b>Task Size</b> → {get_readable_file_size(self.size)}\n"
+                f"┠ <b>Time Taken</b> → {get_readable_time(time() - self.message.date.timestamp())}\n"
+                f"┠ <b>In / Out Mode</b> → {self.mode[0]} | {self.mode[1]}\n"
+                f"┖ <b>Task By</b> → {self.tag}"
+            )
+            LOGGER.info(
+                "Download cancelled: %s | By: %s | Via: %s",
+                self.name,
+                cancellation.get("actor", "Unknown"),
+                cancellation.get("method", "Not recorded"),
+            )
+        else:
+            msg = (
+                f"""〶 <b><i><u>Limit Breached:</u></i></b>
 
 {name_info}┎ <b>Task Size</b> → {get_readable_file_size(self.size)}
 ┠ <b>In / Out Mode</b> → {self.mode[0]} | {self.mode[1]}
 {error}"""
-            if is_limit
-            else f"""{name_info}<i><b>〶 Download Stopped!</b></i>
+                if is_limit
+                else f"""{name_info}<i><b>〶 Download Stopped!</b></i>
 
 ┎ <b>Due To</b> → {error_msg}
 ┠ <b>Task Size</b> → {get_readable_file_size(self.size)}
 ┠ <b>Time Taken</b> → {get_readable_time(time() - self.message.date.timestamp())}
 ┠ <b>In / Out Mode</b> → {self.mode[0]} | {self.mode[1]}
 ┖ <b>Task By</b> → {self.tag}"""
-        )
+            )
 
         await send_message(self.message, msg, button)
         if count == 0:
@@ -838,12 +856,21 @@ class TaskListener(TaskConfig):
             )
         )
         task_info = f"<b><i>{escape(str(task_ref))}</i></b>\n│\n" if task_ref else ""
-        await send_message(
-            self.message,
-            f"{task_info}<b>❌ Upload Failed!</b>\n\n"
-            f"┎ <b>Reason</b> → {escape(str(error))}\n"
-            f"┖ <b>Task By</b> → {self.tag}",
-        )
+        cancellation = getattr(self, "cancellation_info", None)
+        if cancellation:
+            msg = (
+                f"{task_info}<b>🛑 Upload Cancelled!</b>\n\n"
+                f"┎ <b>Cancelled by</b> → {escape(str(cancellation.get('actor', 'Unknown')))}\n"
+                f"┠ <b>Method</b> → {escape(str(cancellation.get('method', 'Not recorded')))}\n"
+                f"┖ <b>Task By</b> → {self.tag}"
+            )
+        else:
+            msg = (
+                f"{task_info}<b>❌ Upload Failed!</b>\n\n"
+                f"┎ <b>Reason</b> → {escape(str(error))}\n"
+                f"┖ <b>Task By</b> → {self.tag}"
+            )
+        await send_message(self.message, msg)
         if count == 0:
             await self.clean()
         else:

@@ -21,6 +21,36 @@ from ..helper.telegram_helper.message_utils import (
 )
 
 
+def record_cancellation(task, actor, method, is_sudo=False):
+    listener = task.listener
+
+    if actor is None:
+        listener.cancellation_info = {
+            "actor": "Unknown",
+            "method": method,
+        }
+        return
+
+    actor_id = actor.id
+    username = getattr(actor, "username", None)
+    actor_name = f"@{username}" if username else f"User ID: {actor_id}"
+
+    if actor_id == Config.OWNER_ID:
+        role = "Bot owner"
+    elif actor_id == listener.user_id:
+        role = "Task owner"
+    elif is_sudo:
+        role = "Sudo/admin"
+    else:
+        role = "User"
+
+    listener.cancellation_info = {
+        "actor": f"{actor_name} ({role})",
+        "actor_id": actor_id,
+        "method": method,
+    }
+
+
 @new_task
 async def cancel(_, message):
     user_id = (message.from_user or message.sender_chat).id
@@ -58,6 +88,18 @@ async def cancel(_, message):
     ):
         await send_message(message, "This task is not for you!")
         return
+
+    actor = message.from_user or message.sender_chat
+    record_cancellation(
+        task,
+        actor,
+        "/cancel",
+        is_sudo=(
+            user_id != Config.OWNER_ID
+            and user_id != task.listener.user_id
+        ),
+    )
+
     obj = task.task()
     await obj.cancel_task()
 
@@ -79,11 +121,17 @@ async def cancel_multi(_, query):
     await delete_message(query.message, query.message.reply_to_message)
 
 
-async def cancel_all(status, user_id):
+async def cancel_all(status, user_id, actor=None, is_sudo=False):
     matches = await get_all_tasks(status.strip(), user_id)
     if not matches:
         return False
     for task in matches:
+        record_cancellation(
+            task,
+            actor,
+            "/cancelall",
+            is_sudo=is_sudo,
+        )
         obj = task.task()
         await obj.cancel_task()
         await sleep(2)
@@ -107,18 +155,12 @@ def create_cancel_buttons(is_sudo, user_id=""):
     buttons.data_button(
         "Archiving", f"canall ms {MirrorStatus.STATUS_ARCHIVE} {user_id}"
     )
-    buttons.data_button(
-        "QueuedDl", f"canall ms {MirrorStatus.STATUS_QUEUEDL} {user_id}"
-    )
-    buttons.data_button(
-        "QueuedUp", f"canall ms {MirrorStatus.STATUS_QUEUEUP} {user_id}"
-    )
+    buttons.data_button("QueuedDl", f"canall ms {MirrorStatus.STATUS_QUEUEDL} {user_id}")
+    buttons.data_button("QueuedUp", f"canall ms {MirrorStatus.STATUS_QUEUEUP} {user_id}")
     buttons.data_button(
         "SampleVideo", f"canall ms {MirrorStatus.STATUS_SAMVID} {user_id}"
     )
-    buttons.data_button(
-        "ConvertMedia", f"canall ms {MirrorStatus.STATUS_CONVERT} {user_id}"
-    )
+    buttons.data_button("ConvertMedia", f"canall ms {MirrorStatus.STATUS_CONVERT} {user_id}")
     buttons.data_button("FFmpeg", f"canall ms {MirrorStatus.STATUS_FFMPEG} {user_id}")
     buttons.data_button("Paused", f"canall ms {MirrorStatus.STATUS_PAUSED} {user_id}")
     buttons.data_button("All", f"canall ms All {user_id}")
@@ -138,7 +180,10 @@ async def cancel_all_buttons(_, message):
     if count == 0:
         await send_message(message, "No active tasks!")
         return
-    is_sudo = await CustomFilters.sudo("", message)
+    is_sudo = (
+        message.from_user.id == Config.OWNER_ID
+        or await CustomFilters.sudo("", message)
+    )
     button = create_cancel_buttons(is_sudo, message.from_user.id)
     can_msg = await send_message(message, "Choose tasks to cancel!", button)
     await auto_delete_message(message, can_msg)
@@ -150,9 +195,13 @@ async def cancel_all_update(_, query):
     message = query.message
     reply_to = message.reply_to_message
     user_id = int(data[3]) if len(data) > 3 else ""
-    is_sudo = await CustomFilters.sudo("", query)
-    if not is_sudo and user_id and user_id != query.from_user.id:
+    is_sudo = (
+        query.from_user.id == Config.OWNER_ID
+        or await CustomFilters.sudo("", query)
+    )
+    if not is_sudo and user_id != query.from_user.id:
         await query.answer("Not Yours!", show_alert=True)
+        return
     else:
         await query.answer()
     if data[1] == "close":
@@ -180,6 +229,11 @@ async def cancel_all_update(_, query):
     else:
         button = create_cancel_buttons(is_sudo, user_id)
         await edit_message(message, "Choose tasks to cancel.", button)
-        res = await cancel_all(data[1], user_id)
+        res = await cancel_all(
+            data[1],
+            user_id,
+            actor=query.from_user,
+            is_sudo=is_sudo,
+        )
         if not res:
             await send_message(reply_to, f"No matching tasks for {data[1]}!")

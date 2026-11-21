@@ -908,5 +908,14 @@ class TelegramUploader:
 
     async def cancel_task(self):
         self._listener.is_cancelled = True
-        LOGGER.info(f"Cancelling Upload: {self._listener.name}")
+
+        details = getattr(self._listener, "cancellation_info", None)
+
+        LOGGER.info(
+            "Cancelling Upload: %s | Requested by: %s | Method: %s",
+            self._listener.name,
+            details.get("actor", "Unknown") if details else "Unknown",
+            details.get("method", "Not recorded") if details else "Not recorded",
+        )
+
         await self._listener.on_upload_error("your upload has been stopped!")

@@ -163,7 +163,7 @@ user_settings_text = {
     "EXCLUDED_EXTENSIONS": (
         "",
         "",
-        "Send exluded extenions seperated by space without dot at beginning. </i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
+        "Send additional excluded extensions separated by spaces.\n\nExample: pdf nfo txt\n\nNote: Global exclusions are mandatory and cannot be overridden.</i>\n┖ <b>Time Left :</b> <code>60 sec</code>",
     ),
     "BLACKLISTED_KEYWORDS": (
         "",
@@ -1128,15 +1128,15 @@ async def get_user_settings(from_user, stype="main"):
         buttons.data_button(
             "Blacklisted Keywords", f"userset {user_id} menu BLACKLISTED_KEYWORDS"
         )
-        if user_dict.get("EXCLUDED_EXTENSIONS", False):
-            ex_ex = user_dict["EXCLUDED_EXTENSIONS"]
-        elif "EXCLUDED_EXTENSIONS" not in user_dict:
-            ex_ex = excluded_extensions
-        else:
-            ex_ex = "None"
+        global_ex = ", ".join(
+            ext for ext in excluded_extensions
+            if ext.lower() not in ("aria2", "!qb")
+        ) or "None"
 
-        if ex_ex != "None":
-            ex_ex = ", ".join(ex_ex)
+        user_ex = ", ".join(
+            ext for ext in (user_dict.get("EXCLUDED_EXTENSIONS") or [])
+            if ext.lower() not in ("aria2", "!qb")
+        ) or "None"
 
         if user_dict.get("BLACKLISTED_KEYWORDS", False):
             bl_kw = user_dict["BLACKLISTED_KEYWORDS"]
@@ -1188,7 +1188,8 @@ async def get_user_settings(from_user, stype="main"):
 ┟ <b>Name</b> → {user_name}
 ┃
 ┠ <b>Name Swaps</b> → {ns_msg}
-┠ <b>Excluded Extensions</b> → <code>{ex_ex}</code>
+┠ <b>Global Exclusions</b> → <code>{global_ex}</code>
+┠ <b>Your Exclusions</b> → <code>{user_ex}</code>
 ┠ <b>Blacklisted Keywords</b> → <code>{bl_kw}</code>
 ┠ <b>Upload Paths</b> → <b>{upload_paths}</b>
 ┠ <b>YT-DLP Options</b> → <code>{ytopt}</code>

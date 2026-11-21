@@ -254,7 +254,7 @@ async def get_readable_message(sid, is_user, page_no=1, status="All", page_step=
                 count = ""
             msg += f"\n┠ <b>Processed</b> → <i>{task.processed_bytes()}{subsize} of {task.size()}</i>"
             if count:
-                msg += f"\n┠ <b>File Progress</b> → <b>{count}</b>
+                msg += f"\n┠ <b>File Progress</b> → <b>{count}</b>"
             msg += f"\n┠ <b>Status</b> → <b>{tstatus}</b>"
             msg += f"\n┠ <b>Speed</b> → <i>{task.speed()}</i>"
             eta = task.eta()

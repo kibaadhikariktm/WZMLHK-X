@@ -579,13 +579,38 @@ class TelegramUploader:
         if self._listener.is_cancelled:
             return
         if self._total_files == 0:
+            global_exts = " • ".join(
+                f".{ext.lstrip('.')}"
+                for ext in Config.EXCLUDED_EXTENSIONS.split()
+            ) or "None"
+
+            user_exts = " • ".join(
+                f".{ext.lstrip('.')}"
+                for ext in (
+                    self._listener.user_dict.get("EXCLUDED_EXTENSIONS") or []
+                )
+            ) or "None"
+
             await self._listener.on_upload_error(
-                "No files to upload. In case you have filled EXCLUDED_EXTENSIONS, then check if all files have those extensions or not."
+                "🚫 No Eligible Files Found\n\n"
+                "Your files may contain restricted extensions.\n\n"
+                "┎ Global Exclusions\n"
+                f"┠ {global_exts}\n"
+                "┖ Restricted by administrator\n\n"
+                "┎ Your Exclusions\n"
+                f"┖ {user_exts}\n\n"
+                "💡 Please submit files with permitted extensions."
             )
             return
         if self._total_files <= self._corrupted:
             await self._listener.on_upload_error(
-                f"Files Corrupted or unable to upload. {self._error or 'Check logs!'}"
+                "No files were uploaded successfully.\n\n"
+                "┎ Upload Summary\n"
+                f"┠ Total Files → {self._total_files}\n"
+                f"┖ Failed Files → {self._corrupted}\n\n"
+                "┎ Failure Reason\n"
+                f"┖ {self._error or 'Files may be corrupted, empty or unable to upload.'}\n\n"
+                "💡 Please check your files"
             )
             return
         LOGGER.info(f"Leech Completed: {self._listener.name}")
